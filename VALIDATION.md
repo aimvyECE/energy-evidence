@@ -10,3 +10,9 @@ Date: 2026-11-12. Runtime: Python 3.12.14, Linux.
 Not performed: deployment, remote GitHub Actions execution, browser visual/accessibility review, real customer data validation, external security audit, large-data load tests. Compatibility with Python 3.10 and 3.13 is intended and configured in CI, but only 3.12 was tested locally.
 
 All demonstration records are synthetic. No network service, model download or paid resource is required.
+
+## Completeness/provenance extension
+
+Local validation: 25 unittest tests passed on Python 3.12. Eight new tests cover declared edge gaps, inferred spans, invalid windows, rejection of out-of-window observations, provenance retention and HTML escaping, invalid provenance, empty API input, and year boundaries. The CLI successfully generated `examples/calendar-report/` from the synthetic fixture with a January–April declared window and an explicitly invented emission factor.
+
+No external audit, real-world field test or production performance benchmark is claimed. Coverage is calendar completeness, not evidence of meter accuracy. GitHub CI must be checked separately for each published revision.

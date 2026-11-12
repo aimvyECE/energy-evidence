@@ -69,7 +69,27 @@ def percent(current, previous):
     return None if previous == 0 else str((current - previous) * 100 / previous)
 
 
-def summarize(rows, source_sha256, factor=None, threshold=Decimal('25')):
+def month_range(start, end):
+    for value in (start, end):
+        if not re.fullmatch(r'[0-9]{4}-(0[1-9]|1[0-2])', value) or value[:4] == '0000':
+            raise DataError('Expected period must use YYYY-MM, year 0001–9999')
+    first, last = month_index(start), month_index(end)
+    if first > last:
+        raise DataError('Expected start must not follow expected end')
+    return [f'{index // 12:04d}-{index % 12 + 1:02d}' for index in range(first, last + 1)]
+
+
+def summarize(rows, source_sha256, factor=None, threshold=Decimal('25'),
+              expected_start=None, expected_end=None, factor_source=None):
+    if not rows:
+        raise DataError('At least one reading is required')
+    if (expected_start is None) != (expected_end is None):
+        raise DataError('Supply both expected start and expected end')
+    expected = None if expected_start is None else month_range(expected_start, expected_end)
+    if expected is not None and any(row.month < expected_start or row.month > expected_end for row in rows):
+        raise DataError('Observation outside expected reporting period; no rows were silently dropped')
+    if factor_source is not None and (factor is None or not factor_source.strip()):
+        raise DataError('Factor source requires a factor and a nonblank description')
     if factor is not None and (not factor.is_finite() or factor < 0):
         raise DataError('Emission factor must be finite and nonnegative')
     if not threshold.is_finite() or threshold < 0:
@@ -79,6 +99,9 @@ def summarize(rows, source_sha256, factor=None, threshold=Decimal('25')):
         records = sorted((row for row in rows if row.site == site), key=lambda row: row.month)
         total_kwh = sum((row.kwh for row in records), Decimal(0))
         total_cost = sum((row.cost_eur for row in records), Decimal(0))
+        window = expected if expected is not None else month_range(records[0].month, records[-1].month)
+        observed = {row.month for row in records}
+        missing = [month for month in window if month not in observed]
         monthly = []
         for index, row in enumerate(records):
             change = None
@@ -91,14 +114,18 @@ def summarize(rows, source_sha256, factor=None, threshold=Decimal('25')):
                     if change is not None and abs(Decimal(change)) >= threshold:
                         warnings.append(f'{site} {row.month}: consumption change {Decimal(change):.1f}% exceeds or equals screening threshold')
             monthly.append({'month': row.month, 'kwh': str(row.kwh), 'cost_eur': str(row.cost_eur), 'change_percent': change})
-        sites.append({'site': site, 'observed_months': len(records), 'first_month': records[0].month, 'last_month': records[-1].month,
+        if expected is not None and missing:
+            warnings.append(f'{site}: {len(missing)} missing months in declared reporting period; missing is not zero consumption')
+        sites.append({'site': site, 'missing_months': missing,
+                      'expected_months': len(window), 'coverage_percent': str(Decimal(len(records)) * 100 / len(window)), 'observed_months': len(records), 'first_month': records[0].month, 'last_month': records[-1].month,
                       'kwh': str(total_kwh), 'cost_eur': str(total_cost),
                       'blended_eur_per_kwh': None if total_kwh == 0 else str(total_cost / total_kwh),
                       'estimated_kgco2e': None if factor is None else str(total_kwh * factor), 'monthly': monthly})
     coverages = {(s['first_month'], s['last_month'], tuple(m['month'] for m in s['monthly'])) for s in sites}
     if len(coverages) > 1:
         warnings.append('Sites have unequal observed periods; aggregate totals are not like-for-like site comparisons')
-    return {'schema_version': 1, 'source_sha256': source_sha256, 'currency': 'EUR',
+    return {'schema_version': 2, 'expected_period': None if expected is None else {'start': expected_start, 'end': expected_end},
+            'factor_source': factor_source, 'coverage_basis': 'declared period' if expected is not None else 'each site observed span', 'source_sha256': source_sha256, 'currency': 'EUR',
             'emission_factor_kgco2e_per_kwh': None if factor is None else str(factor),
             'screening_threshold_percent': str(threshold), 'sites': sites, 'warnings': warnings,
             'limitations': ['Prototype, not an energy audit or regulatory carbon inventory.',
@@ -114,12 +141,13 @@ def render_html(result):
         rows = ''.join('<tr>' + ''.join(f'<td>{escape(value) if value is not None else "—"}</td>' for value in
                    [m['month'], m['kwh'], m['cost_eur'], m['change_percent']]) + '</tr>' for m in site['monthly'])
         cards.append(f"<section><h2>{escape(site['site'])}</h2><p>{escape(site['kwh'])} kWh · {escape(site['cost_eur'])} EUR · {site['observed_months']} observed months</p>"
+                     f"<p>Coverage: {escape(site['coverage_percent'])}% of {site['expected_months']} months ({escape(result['coverage_basis'])}). Missing: {escape(', '.join(site['missing_months']) or 'none')}.</p>"
                      '<table><thead><tr><th>Month</th><th>kWh</th><th>EUR</th><th>Change %</th></tr></thead><tbody>' + rows + '</tbody></table></section>')
     warnings = ''.join(f'<li>{escape(item)}</li>' for item in result['warnings']) or '<li>No screening flags. This does not establish data completeness or absence of issues.</li>'
     limitations = ''.join(f'<li>{escape(item)}</li>' for item in result['limitations'])
     return f'''<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Energy CSV report</title>
 <style>body{{font:16px system-ui;margin:40px auto;max-width:960px;padding:0 20px;color:#153334;background:#f6f9f7}}section{{background:white;padding:20px;margin:20px 0;border:1px solid #cddbd6;border-radius:12px}}table{{border-collapse:collapse;width:100%}}th,td{{text-align:left;padding:8px;border-bottom:1px solid #ddd}}code{{overflow-wrap:anywhere}}</style>
-<h1>Energy CSV report</h1><p>Local prototype · monthly observations · EUR</p>{''.join(cards)}<h2>Review flags</h2><ul>{warnings}</ul><h2>Method and limitations</h2><ul>{limitations}</ul><p>Supplied factor (kgCO₂e/kWh): {escape(result['emission_factor_kgco2e_per_kwh'])}</p><p>Source SHA-256: <code>{escape(result['source_sha256'])}</code></p></html>'''
+<h1>Energy CSV report</h1><p>Local prototype · monthly observations · EUR</p>{''.join(cards)}<h2>Review flags</h2><ul>{warnings}</ul><h2>Method and limitations</h2><ul>{limitations}</ul><p>Supplied factor (kgCO₂e/kWh): {escape(result['emission_factor_kgco2e_per_kwh'])}</p><p>Factor provenance (user declaration, not verified): {escape(result['factor_source'] or 'not supplied')}</p><p>Source SHA-256: <code>{escape(result['source_sha256'])}</code></p></html>'''
 
 
 def main(argv=None):
@@ -128,13 +156,17 @@ def main(argv=None):
     parser.add_argument('--out', type=Path, default=Path('report-output'))
     parser.add_argument('--factor', help='Optional user-sourced kgCO2e/kWh factor; no default')
     parser.add_argument('--threshold', default='25', help='Absolute consecutive-month change screening threshold (%)')
+    parser.add_argument('--expected-start', help='First required reporting month, YYYY-MM; requires --expected-end')
+    parser.add_argument('--expected-end', help='Last required reporting month, YYYY-MM; requires --expected-start')
+    parser.add_argument('--factor-source', help='User-declared factor citation, year, geography and method (not verified)')
     args = parser.parse_args(argv)
     try:
         raw = args.csv.read_bytes()
         rows = load_csv(raw)
         factor = None if args.factor is None else number(args.factor, 'factor', 'CLI')
         threshold = number(args.threshold, 'threshold', 'CLI')
-        result = summarize(rows, hashlib.sha256(raw).hexdigest(), factor, threshold)
+        result = summarize(rows, hashlib.sha256(raw).hexdigest(), factor, threshold,
+                           args.expected_start, args.expected_end, args.factor_source)
         args.out.mkdir(parents=True, exist_ok=True)
         # Refuse overwrites so repeated runs cannot silently replace an earlier report.
         json_path, html_path = args.out / 'report.json', args.out / 'report.html'

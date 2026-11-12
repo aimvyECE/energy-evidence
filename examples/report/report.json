@@ -1,5 +1,8 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
+  "expected_period": null,
+  "factor_source": null,
+  "coverage_basis": "each site observed span",
   "source_sha256": "dad208a86bdd1b8b942150c3b0b0b63b43702f916f99d646929a97a550902384",
   "currency": "EUR",
   "emission_factor_kgco2e_per_kwh": null,
@@ -7,6 +10,9 @@
   "sites": [
     {
       "site": "Demo office",
+      "missing_months": [],
+      "expected_months": 3,
+      "coverage_percent": "100",
       "observed_months": 3,
       "first_month": "2026-01",
       "last_month": "2026-03",
@@ -37,6 +43,9 @@
     },
     {
       "site": "Demo workshop",
+      "missing_months": [],
+      "expected_months": 3,
+      "coverage_percent": "100",
       "observed_months": 3,
       "first_month": "2026-01",
       "last_month": "2026-03",

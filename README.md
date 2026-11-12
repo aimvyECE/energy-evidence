@@ -46,13 +46,13 @@ The `0.05` factor above is a **made-up demonstration assumption**, not a recomme
 - Demo office: 1,690 kWh and €507.
 - Workshop March change: approximately +45.45%, flagged at the default 25% screening threshold.
 
-These flags are not a diagnosis. Weather, occupancy, working days and actual billing intervals are not normalized. A cost/kWh ratio can include standing charges and is not necessarily an energy tariff. Incomplete coverage outside the first/last observed months cannot be inferred.
+These flags are not a diagnosis. Weather, occupancy, working days and actual billing intervals are not normalized. A cost/kWh ratio can include standing charges and is not necessarily an energy tariff. Without an explicit expected period, incomplete coverage outside the first/last observed months cannot be inferred.
 
 ## Design and boundaries
 
 Standard library only: `csv`, `Decimal`, `hashlib`, `html`, `json`, `argparse`. No borrowed model, OCR engine, cloud connector, telemetry or network calls. CSV extraction from invoices is **not implemented**. This repository is a small reporting building block, not a production SaaS.
 
-Tests cover calculations, duplicate rejection, dates, invalid numeric values, sparse periods, zero baselines, unequal coverage, HTML escaping and CLI exports. GitHub Actions configuration is supplied but has not been run remotely. Local test evidence is in `VALIDATION.md`.
+Tests cover calculations, duplicate rejection, dates, invalid numeric values, sparse periods, zero baselines, unequal coverage, HTML escaping and CLI exports. GitHub Actions runs the test suite on pushes and pull requests; consult the Actions tab for the current result. Local test evidence is in `VALIDATION.md`.
 
 ### Security and privacy
 
@@ -60,8 +60,8 @@ Run on trusted, bounded-size exports: the entire CSV is loaded into memory. HTML
 
 ## Development roadmap (not delivered)
 
-1. Meter-level and billing-interval schema; completeness calendar.
-2. Factor provenance and separate accounting methods.
+1. Meter-level and billing-interval schema.
+2. Structured factor provenance and separate accounting methods.
 3. Weather/occupancy normalization with uncertainty bounds.
 4. Invoice extraction with human review and source highlighting.
 5. Accessibility and visual browser review of HTML output.
@@ -74,3 +74,17 @@ Run on trusted, bounded-size exports: the entire CSV is loaded into memory. HTML
 ## Authorship and license
 
 Developed as an AI-assisted prototype for a personal engineering portfolio. No claim of past deployment, customer adoption, model training or professional certification. MIT license covers the code and synthetic examples; see `LICENSE`.
+
+## Completeness and factor provenance (schema v2)
+
+```sh
+python -m energy_report examples/synthetic_monthly.csv --out calendar-demo \
+  --expected-start 2026-01 --expected-end 2026-04 \
+  --factor 0.05 --factor-source "Synthetic teaching assumption; not a real inventory factor"
+```
+
+Both period boundaries are required together. The declared window applies to every observed site; an observation outside it is rejected rather than silently excluded. JSON includes `missing_months`, `expected_months`, and `coverage_percent` per site. Missing months are **not imputed** into monthly readings or totals. Without a declared window, completeness covers each site's first-to-last observation only. Entirely absent sites cannot be detected without a separate site register.
+
+`factor_source` preserves a user declaration, not a verified citation. It is optional for compatibility, but should be supplied whenever emissions figures are shared. It requires a factor and must not be blank. The factor is still a single assumption for all observations, not a multi-year or site-specific inventory model.
+
+Schema v2 adds completeness and provenance fields; existing numerical site fields remain. A synthetic worked calendar report is included in `examples/calendar-report/`. For contribution workflow and review criteria, see [CONTRIBUTING.md](CONTRIBUTING.md).

@@ -1,0 +1,96 @@
+{
+  "schema_version": 2,
+  "expected_period": {
+    "start": "2026-01",
+    "end": "2026-04"
+  },
+  "factor_source": "Synthetic teaching assumption; not a real inventory factor",
+  "coverage_basis": "declared period",
+  "source_sha256": "dad208a86bdd1b8b942150c3b0b0b63b43702f916f99d646929a97a550902384",
+  "currency": "EUR",
+  "emission_factor_kgco2e_per_kwh": "0.05",
+  "screening_threshold_percent": "25",
+  "sites": [
+    {
+      "site": "Demo office",
+      "missing_months": [
+        "2026-04"
+      ],
+      "expected_months": 4,
+      "coverage_percent": "75",
+      "observed_months": 3,
+      "first_month": "2026-01",
+      "last_month": "2026-03",
+      "kwh": "1690",
+      "cost_eur": "507",
+      "blended_eur_per_kwh": "0.3",
+      "estimated_kgco2e": "84.50",
+      "monthly": [
+        {
+          "month": "2026-01",
+          "kwh": "600",
+          "cost_eur": "180",
+          "change_percent": null
+        },
+        {
+          "month": "2026-02",
+          "kwh": "540",
+          "cost_eur": "162",
+          "change_percent": "-10"
+        },
+        {
+          "month": "2026-03",
+          "kwh": "550",
+          "cost_eur": "165",
+          "change_percent": "1.851851851851851851851851852"
+        }
+      ]
+    },
+    {
+      "site": "Demo workshop",
+      "missing_months": [
+        "2026-04"
+      ],
+      "expected_months": 4,
+      "coverage_percent": "75",
+      "observed_months": 3,
+      "first_month": "2026-01",
+      "last_month": "2026-03",
+      "kwh": "3700",
+      "cost_eur": "962",
+      "blended_eur_per_kwh": "0.26",
+      "estimated_kgco2e": "185.00",
+      "monthly": [
+        {
+          "month": "2026-01",
+          "kwh": "1000",
+          "cost_eur": "260",
+          "change_percent": null
+        },
+        {
+          "month": "2026-02",
+          "kwh": "1100",
+          "cost_eur": "286",
+          "change_percent": "10"
+        },
+        {
+          "month": "2026-03",
+          "kwh": "1600",
+          "cost_eur": "416",
+          "change_percent": "45.45454545454545454545454545"
+        }
+      ]
+    }
+  ],
+  "warnings": [
+    "Demo office: 1 missing months in declared reporting period; missing is not zero consumption",
+    "Demo workshop 2026-03: consumption change 45.5% exceeds or equals screening threshold",
+    "Demo workshop: 1 missing months in declared reporting period; missing is not zero consumption"
+  ],
+  "limitations": [
+    "Prototype, not an energy audit or regulatory carbon inventory.",
+    "Changes are screening signals, not proof of waste or faults; weather, occupancy and billing periods are not normalized.",
+    "Cost/kWh includes every cost in the input and is not necessarily the contractual energy tariff.",
+    "Optional single emission factor is user supplied; no default factor or source is implied."
+  ]
+}
