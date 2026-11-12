@@ -1,0 +1,7 @@
+month,site,kwh,cost_eur
+2026-01,Demo workshop,1000,260
+2026-02,Demo workshop,1100,286
+2026-03,Demo workshop,1600,416
+2026-01,Demo office,600,180
+2026-02,Demo office,540,162
+2026-03,Demo office,550,165
