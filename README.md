@@ -88,3 +88,20 @@ Both period boundaries are required together. The declared window applies to eve
 `factor_source` preserves a user declaration, not a verified citation. It is optional for compatibility, but should be supplied whenever emissions figures are shared. It requires a factor and must not be blank. The factor is still a single assumption for all observations, not a multi-year or site-specific inventory model.
 
 Schema v2 adds completeness and provenance fields; existing numerical site fields remain. A synthetic worked calendar report is included in `examples/calendar-report/`. For contribution workflow and review criteria, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Assumption stress test (optional schema v3)
+
+Rather than presenting one carbon number as certain, propagate explicit bounds:
+
+```sh
+python -m energy_report examples/synthetic_monthly.csv --out envelope-demo \
+  --expected-start 2026-01 --expected-end 2026-04 \
+  --factor 0.05 --factor-source "Synthetic teaching assumptions only" \
+  --factor-low 0.04 --factor-high 0.08 --meter-error-percent 10
+```
+
+All factors above are **invented**, not sourced inventory factors. Each site's JSON and HTML includes an observed-period emissions envelope. For 1,000 observed kWh, ±10% energy error and factors 0.04–0.08, the result is **36–88 kgCO₂e**. This is deterministic interval propagation `E × (1 ± r) × factor_bound`, **not a confidence interval, probability distribution or forecast**. Bounds assume simultaneous extremes, allowing systematic bias shared across readings. Meter error must be 0–100%; the central factor must be inside the bounds; an explicit factor source declaration is mandatory.
+
+JSON also exposes one-at-a-time widths from the factor range and meter error at the midpoint factor. These help decide which assumption deserves further investigation; they are not independent variances or statistical importance scores. The API is `energy_report.uncertainty.emission_envelope` (Decimal arguments).
+
+**Missing consumption remains missing.** Bounds apply only to observed totals and do not turn a partial year into an annual inventory. No automatic imputation, probability model, regulatory assurance, or validation of supplied bounds is claimed. Existing commands retain schema v2; opting into bounds produces schema v3 with additive site fields. See the entirely synthetic [worked report](examples/envelope-report/report.json).

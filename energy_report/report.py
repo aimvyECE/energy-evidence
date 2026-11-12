@@ -140,7 +140,13 @@ def render_html(result):
     for site in result['sites']:
         rows = ''.join('<tr>' + ''.join(f'<td>{escape(value) if value is not None else "—"}</td>' for value in
                    [m['month'], m['kwh'], m['cost_eur'], m['change_percent']]) + '</tr>' for m in site['monthly'])
-        cards.append(f"<section><h2>{escape(site['site'])}</h2><p>{escape(site['kwh'])} kWh · {escape(site['cost_eur'])} EUR · {site['observed_months']} observed months</p>"
+        envelope = site.get('emission_envelope')
+        interval = '' if envelope is None else (
+            '<p>Observed-period emissions scenario envelope: '
+            + escape(envelope['emissions_low_kgco2e']) + '–'
+            + escape(envelope['emissions_high_kgco2e'])
+            + ' kgCO₂e. Not a confidence interval; missing months excluded.</p>')
+        cards.append(interval + f"<section><h2>{escape(site['site'])}</h2><p>{escape(site['kwh'])} kWh · {escape(site['cost_eur'])} EUR · {site['observed_months']} observed months</p>"
                      f"<p>Coverage: {escape(site['coverage_percent'])}% of {site['expected_months']} months ({escape(result['coverage_basis'])}). Missing: {escape(', '.join(site['missing_months']) or 'none')}.</p>"
                      '<table><thead><tr><th>Month</th><th>kWh</th><th>EUR</th><th>Change %</th></tr></thead><tbody>' + rows + '</tbody></table></section>')
     warnings = ''.join(f'<li>{escape(item)}</li>' for item in result['warnings']) or '<li>No screening flags. This does not establish data completeness or absence of issues.</li>'
@@ -159,6 +165,9 @@ def main(argv=None):
     parser.add_argument('--expected-start', help='First required reporting month, YYYY-MM; requires --expected-end')
     parser.add_argument('--expected-end', help='Last required reporting month, YYYY-MM; requires --expected-start')
     parser.add_argument('--factor-source', help='User-declared factor citation, year, geography and method (not verified)')
+    parser.add_argument('--factor-low', help='Scenario lower emission factor (requires --factor-high and --factor-source)')
+    parser.add_argument('--factor-high', help='Scenario upper emission factor')
+    parser.add_argument('--meter-error-percent', help='Symmetric relative energy error, 0–100; requires factor bounds')
     args = parser.parse_args(argv)
     try:
         raw = args.csv.read_bytes()
@@ -167,6 +176,19 @@ def main(argv=None):
         threshold = number(args.threshold, 'threshold', 'CLI')
         result = summarize(rows, hashlib.sha256(raw).hexdigest(), factor, threshold,
                            args.expected_start, args.expected_end, args.factor_source)
+        if (args.factor_low is None) != (args.factor_high is None):
+            raise DataError('Supply both --factor-low and --factor-high')
+        if args.meter_error_percent is not None and args.factor_low is None:
+            raise DataError('--meter-error-percent requires factor bounds')
+        if args.factor_low is not None:
+            if factor is None or not args.factor_source or not args.factor_source.strip():
+                raise DataError('Factor bounds require --factor and --factor-source')
+            low = number(args.factor_low, 'factor-low', 'CLI')
+            high = number(args.factor_high, 'factor-high', 'CLI')
+            if not low <= factor <= high:
+                raise DataError('Central factor must lie within scenario bounds')
+            from .uncertainty import add_envelopes
+            add_envelopes(result, low, high, number(args.meter_error_percent or '0', 'meter-error-percent', 'CLI'))
         args.out.mkdir(parents=True, exist_ok=True)
         # Refuse overwrites so repeated runs cannot silently replace an earlier report.
         json_path, html_path = args.out / 'report.json', args.out / 'report.html'

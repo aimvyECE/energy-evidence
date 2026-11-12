@@ -16,3 +16,7 @@ All demonstration records are synthetic. No network service, model download or p
 Local validation: 25 unittest tests passed on Python 3.12. Eight new tests cover declared edge gaps, inferred spans, invalid windows, rejection of out-of-window observations, provenance retention and HTML escaping, invalid provenance, empty API input, and year boundaries. The CLI successfully generated `examples/calendar-report/` from the synthetic fixture with a January–April declared window and an explicitly invented emission factor.
 
 No external audit, real-world field test or production performance benchmark is claimed. Coverage is calendar completeness, not evidence of meter accuracy. GitHub CI must be checked separately for each published revision.
+
+## Scenario envelope validation
+
+30 tests pass locally (Python 3.12), including 5 envelope tests: exact corner arithmetic, invalid/inverted/nonfinite bounds, zero-width and zero-energy cases, missing-month exclusion, CLI guardrails and JSON/HTML export. The worked fixture uses only invented data. No claim of statistical calibration or visual browser QA is made.
