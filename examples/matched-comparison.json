@@ -1,0 +1,69 @@
+{
+  "comparison_schema_version": 1,
+  "baseline_year": 2024,
+  "comparison_year": 2025,
+  "ignored_years": [],
+  "sites": [
+    {
+      "site": "Demo office",
+      "matched_months": [
+        "01"
+      ],
+      "matched_month_count": 1,
+      "full_calendar_year": false,
+      "baseline_only_months": [],
+      "comparison_only_months": [],
+      "totals_on_matched_months": {
+        "kwh": {
+          "baseline": "200",
+          "comparison": "210",
+          "change": "10",
+          "change_percent": "5"
+        },
+        "cost_eur": {
+          "baseline": "60",
+          "comparison": "63",
+          "change": "3",
+          "change_percent": "5"
+        }
+      }
+    },
+    {
+      "site": "Demo workshop",
+      "matched_months": [
+        "01"
+      ],
+      "matched_month_count": 1,
+      "full_calendar_year": false,
+      "baseline_only_months": [
+        "02"
+      ],
+      "comparison_only_months": [
+        "03"
+      ],
+      "totals_on_matched_months": {
+        "kwh": {
+          "baseline": "100",
+          "comparison": "80",
+          "change": "-20",
+          "change_percent": "-20"
+        },
+        "cost_eur": {
+          "baseline": "20",
+          "comparison": "24",
+          "change": "4",
+          "change_percent": "20"
+        }
+      }
+    }
+  ],
+  "limitations": [
+    "Only matching calendar months are compared; missing data is not zero.",
+    "Changes are not verified energy savings or a diagnosis.",
+    "Weather, occupancy, billing intervals and leap years are not normalized.",
+    "Cost changes may reflect price changes, not consumption efficiency.",
+    "Input must use a consistent energy scope and tax basis across years.",
+    "No cross-site aggregate is supplied: sites may have different matched months."
+  ],
+  "source_sha256": "62c8e98314b6f7abd51eb4575899152a8be945e6a4160064d7e9b1ae04882ab9"
+}

@@ -105,3 +105,37 @@ All factors above are **invented**, not sourced inventory factors. Each site's J
 JSON also exposes one-at-a-time widths from the factor range and meter error at the midpoint factor. These help decide which assumption deserves further investigation; they are not independent variances or statistical importance scores. The API is `energy_report.uncertainty.emission_envelope` (Decimal arguments).
 
 **Missing consumption remains missing.** Bounds apply only to observed totals and do not turn a partial year into an annual inventory. No automatic imputation, probability model, regulatory assurance, or validation of supplied bounds is claimed. Existing commands retain schema v2; opting into bounds produces schema v3 with additive site fields. See the entirely synthetic [worked report](examples/envelope-report/report.json).
+
+## Compare years on matching months (JSON CLI)
+
+```sh
+python -m energy_report.compare examples/synthetic_comparison.csv \
+  --baseline-year 2024 --comparison-year 2025 --out comparison.json
+```
+
+Use the same validated CSV contract. For each site, only calendar months observed
+in **both** selected years contribute to the comparison. This prevents a partial
+year from being compared against a fuller year as though coverage were equal.
+The output lists matched months, baseline-only months, comparison-only months,
+and any other years excluded by the explicit selection. It includes an input
+SHA-256 fingerprint and refuses to overwrite existing output files.
+
+In the wholly synthetic fixture, the workshop's January changes from 100 to
+80 kWh (**−20%**) while its cost changes from €20 to €24 (**+20%**). February
+exists only in the baseline and March only in the comparison: neither contributes
+to these totals. Comparing the raw 1,100 and 480 kWh totals would be misleading.
+The sample result is [matched-comparison.json](examples/matched-comparison.json).
+
+No common months produces `null` totals, **not zero**. A zero baseline produces
+`null` percentage change with an absolute change still available. Sites present
+in just one selected year remain visible. `full_calendar_year` is true only when
+all twelve months match. Years need not be adjacent, but the comparison year must
+be later; a multi-year change is **not annualized**. There is no cross-site total
+because sites can have different matched calendars. This is a separate comparison
+schema; the existing report JSON schemas are unchanged.
+
+**Matching months is not weather or occupancy normalization.** Leap-year days,
+actual billing intervals, changed meter scope and tariffs can still bias the
+comparison. Input energy scope and tax basis must be consistent. Changes are not
+verified savings, causal findings or a certified measurement-and-verification
+result. Do not publish real input or output records.
