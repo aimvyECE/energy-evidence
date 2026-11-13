@@ -28,3 +28,12 @@ A pull request should explain the decision, update tests and documentation, and 
 - [ ] HTML escapes every user-provided value.
 - [ ] Examples contain synthetic data only.
 - [ ] JSON schema changes and limitations are documented.
+
+### Matched-period comparison contributions
+
+The comparison CLI in `energy_report/compare.py` has its own synthetic fixture
+and regression suite. Useful extensions include explicit scope metadata and an
+optional baseline/comparison site register for detecting entirely absent sites.
+Keep unmatched observations visible, preserve `null` for no common evidence,
+and do not label raw year differences as normalized savings. Include a hand-
+calculable fixture and update the comparison schema documentation with changes.

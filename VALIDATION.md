@@ -20,3 +20,17 @@ No external audit, real-world field test or production performance benchmark is 
 ## Scenario envelope validation
 
 30 tests pass locally (Python 3.12), including 5 envelope tests: exact corner arithmetic, invalid/inverted/nonfinite bounds, zero-width and zero-energy cases, missing-month exclusion, CLI guardrails and JSON/HTML export. The worked fixture uses only invented data. No claim of statistical calibration or visual browser QA is made.
+
+## Matched-calendar comparison extension (2026-11-13)
+
+- `python -m unittest discover -s tests -v`: 38 tests passed locally.
+- `python -m compileall -q energy_report tests`: passed.
+- New comparison CLI generated `examples/matched-comparison.json` from a wholly
+  synthetic CSV; the workshop fixture verifies −20% kWh and +20% cost using
+  January only, excluding unmatched February/March observations.
+- Eight tests cover unequal coverage, no common months, zero baseline, site/year
+  selection, complete-year ordering and exact decimal totals, invalid years and
+  duplicate API rows, nonadjacent years without annualization, and CLI provenance/no-overwrite/invalid input.
+
+No real-data evaluation, weather normalization, user-interface change, or
+production-readiness claim. Remote CI must be checked against the published SHA.
