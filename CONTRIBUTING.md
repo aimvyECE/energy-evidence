@@ -28,3 +28,12 @@ A pull request should explain the decision, update tests and documentation, and 
 - [ ] HTML escapes every user-provided value.
 - [ ] Examples contain synthetic data only.
 - [ ] JSON schema changes and limitations are documented.
+
+### Site-register extensions
+
+The report can now check explicit site presence. Helpful next contributions are
+synthetic tests for changes in portfolio scope and a proposed register-file
+format for larger portfolios. Keep absent sites separate from measured zero;
+never discard observations merely because a register omits them. Changes to the
+optional register object should document its own schema version. Do not add real
+building names or operational records to fixtures.

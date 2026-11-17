@@ -105,3 +105,35 @@ All factors above are **invented**, not sourced inventory factors. Each site's J
 JSON also exposes one-at-a-time widths from the factor range and meter error at the midpoint factor. These help decide which assumption deserves further investigation; they are not independent variances or statistical importance scores. The API is `energy_report.uncertainty.emission_envelope` (Decimal arguments).
 
 **Missing consumption remains missing.** Bounds apply only to observed totals and do not turn a partial year into an annual inventory. No automatic imputation, probability model, regulatory assurance, or validation of supplied bounds is claimed. Existing commands retain schema v2; opting into bounds produces schema v3 with additive site fields. See the entirely synthetic [worked report](examples/envelope-report/report.json).
+
+## Detect an entirely missing site
+
+A complete-looking CSV can omit a whole building. Supply an explicit register to
+check site presence rather than inferring it from the file being checked:
+
+```sh
+python -m energy_report examples/synthetic_monthly.csv --out register-demo \
+  --expected-site "Demo office" --expected-site "Demo workshop" \
+  --expected-site "Demo warehouse"
+```
+
+The synthetic warehouse has no readings: it appears under `missing_sites`, not
+as a zero-consumption site. Observed sites not in the register appear under
+`unexpected_sites`; their readings and totals are retained. Review spelling and
+scope before interpreting either warning. Names are case-sensitive and outer
+whitespace is trimmed; blank or duplicate names are errors.
+
+The JSON gains an optional `site_register` object with its own `schema_version: 1`,
+containing sorted `expected_sites`, `observed_expected_sites`, `missing_sites`,
+`unexpected_sites` and a `basis` description. Existing report schema v2/v3 and
+site calculations are unchanged; without the option the output is unchanged.
+The HTML displays the register and warnings. Register checking works with the
+reporting calendar and scenario envelopes, but not the separate comparison CLI.
+
+**Presence is not completeness:** one reading makes a site present. Use
+`--expected-start` and `--expected-end` to check missing months for observed sites.
+A register is a user declaration, not independent evidence that the portfolio is
+complete. No kWh, cost or carbon is imputed for absent sites. A completely empty
+CSV still fails the existing input contract. The API helper is
+`energy_report.site_register.add_site_register(report, ["Site A", "Site B"])`;
+it mutates the report and rejects repeat application to avoid stale warnings.

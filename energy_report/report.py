@@ -149,11 +149,18 @@ def render_html(result):
         cards.append(interval + f"<section><h2>{escape(site['site'])}</h2><p>{escape(site['kwh'])} kWh · {escape(site['cost_eur'])} EUR · {site['observed_months']} observed months</p>"
                      f"<p>Coverage: {escape(site['coverage_percent'])}% of {site['expected_months']} months ({escape(result['coverage_basis'])}). Missing: {escape(', '.join(site['missing_months']) or 'none')}.</p>"
                      '<table><thead><tr><th>Month</th><th>kWh</th><th>EUR</th><th>Change %</th></tr></thead><tbody>' + rows + '</tbody></table></section>')
+    register = result.get('site_register')
+    register_html = '' if register is None else (
+        '<section><h2>Declared site register</h2>'
+        + '<p>Expected: ' + escape(', '.join(register['expected_sites'])) + '</p>'
+        + '<p>Entirely missing: ' + escape(', '.join(register['missing_sites']) or 'none') + '</p>'
+        + '<p>Unlisted observations: ' + escape(', '.join(register['unexpected_sites']) or 'none') + '</p>'
+        + '<p>' + escape(register['basis']) + '. Missing sites have no estimated totals.</p></section>')
     warnings = ''.join(f'<li>{escape(item)}</li>' for item in result['warnings']) or '<li>No screening flags. This does not establish data completeness or absence of issues.</li>'
     limitations = ''.join(f'<li>{escape(item)}</li>' for item in result['limitations'])
     return f'''<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Energy CSV report</title>
 <style>body{{font:16px system-ui;margin:40px auto;max-width:960px;padding:0 20px;color:#153334;background:#f6f9f7}}section{{background:white;padding:20px;margin:20px 0;border:1px solid #cddbd6;border-radius:12px}}table{{border-collapse:collapse;width:100%}}th,td{{text-align:left;padding:8px;border-bottom:1px solid #ddd}}code{{overflow-wrap:anywhere}}</style>
-<h1>Energy CSV report</h1><p>Local prototype · monthly observations · EUR</p>{''.join(cards)}<h2>Review flags</h2><ul>{warnings}</ul><h2>Method and limitations</h2><ul>{limitations}</ul><p>Supplied factor (kgCO₂e/kWh): {escape(result['emission_factor_kgco2e_per_kwh'])}</p><p>Factor provenance (user declaration, not verified): {escape(result['factor_source'] or 'not supplied')}</p><p>Source SHA-256: <code>{escape(result['source_sha256'])}</code></p></html>'''
+<h1>Energy CSV report</h1><p>Local prototype · monthly observations · EUR</p>{register_html}{''.join(cards)}<h2>Review flags</h2><ul>{warnings}</ul><h2>Method and limitations</h2><ul>{limitations}</ul><p>Supplied factor (kgCO₂e/kWh): {escape(result['emission_factor_kgco2e_per_kwh'])}</p><p>Factor provenance (user declaration, not verified): {escape(result['factor_source'] or 'not supplied')}</p><p>Source SHA-256: <code>{escape(result['source_sha256'])}</code></p></html>'''
 
 
 def main(argv=None):
@@ -168,6 +175,7 @@ def main(argv=None):
     parser.add_argument('--factor-low', help='Scenario lower emission factor (requires --factor-high and --factor-source)')
     parser.add_argument('--factor-high', help='Scenario upper emission factor')
     parser.add_argument('--meter-error-percent', help='Symmetric relative energy error, 0–100; requires factor bounds')
+    parser.add_argument('--expected-site', action='append', help='Expected site name; repeat for the complete register (case-sensitive)')
     args = parser.parse_args(argv)
     try:
         raw = args.csv.read_bytes()
@@ -189,6 +197,9 @@ def main(argv=None):
                 raise DataError('Central factor must lie within scenario bounds')
             from .uncertainty import add_envelopes
             add_envelopes(result, low, high, number(args.meter_error_percent or '0', 'meter-error-percent', 'CLI'))
+        if args.expected_site is not None:
+            from .site_register import add_site_register
+            add_site_register(result, args.expected_site)
         args.out.mkdir(parents=True, exist_ok=True)
         # Refuse overwrites so repeated runs cannot silently replace an earlier report.
         json_path, html_path = args.out / 'report.json', args.out / 'report.html'
