@@ -20,3 +20,14 @@ No external audit, real-world field test or production performance benchmark is 
 ## Scenario envelope validation
 
 30 tests pass locally (Python 3.12), including 5 envelope tests: exact corner arithmetic, invalid/inverted/nonfinite bounds, zero-width and zero-energy cases, missing-month exclusion, CLI guardrails and JSON/HTML export. The worked fixture uses only invented data. No claim of statistical calibration or visual browser QA is made.
+
+## Explicit site register (2026-11-17)
+
+38 tests pass locally (Python 3.12), including eight new tests for completely
+absent sites, unlisted observations retained, measured zero versus missing,
+case/whitespace rules, invalid/duplicate names without partial mutation,
+deterministic ordering, repeated application, HTML escaping, and CLI composition
+with scenario envelopes. `compileall` and `git diff --check` also pass.
+A synthetic CLI run identifies a missing warehouse without adding fictional
+readings or changing observed totals. No real data, browser visual QA or external
+verification of a declared register was performed. Check remote CI separately.
