@@ -20,3 +20,7 @@ No external audit, real-world field test or production performance benchmark is 
 ## Scenario envelope validation
 
 30 tests pass locally (Python 3.12), including 5 envelope tests: exact corner arithmetic, invalid/inverted/nonfinite bounds, zero-width and zero-energy cases, missing-month exclusion, CLI guardrails and JSON/HTML export. The worked fixture uses only invented data. No claim of statistical calibration or visual browser QA is made.
+
+## HTML site attribution regression
+
+Local Python 3.12 verification: all 31 tests pass. The new two-site test ties the central estimate and scenario bounds to the correct site heading and verifies escaping. Both documented CLI examples were regenerated; their JSON outputs are byte-for-byte identical to the previous fixtures. This is an HTML-only correction, not a change to the emissions method or schema.
