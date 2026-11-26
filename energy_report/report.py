@@ -140,15 +140,19 @@ def render_html(result):
     for site in result['sites']:
         rows = ''.join('<tr>' + ''.join(f'<td>{escape(value) if value is not None else "—"}</td>' for value in
                    [m['month'], m['kwh'], m['cost_eur'], m['change_percent']]) + '</tr>' for m in site['monthly'])
+        estimate = site['estimated_kgco2e']
+        central = '' if estimate is None else (
+            '<p>Central estimate: ' + escape(estimate) + ' kgCO₂e (observed consumption only).</p>')
         envelope = site.get('emission_envelope')
         interval = '' if envelope is None else (
             '<p>Observed-period emissions scenario envelope: '
             + escape(envelope['emissions_low_kgco2e']) + '–'
             + escape(envelope['emissions_high_kgco2e'])
             + ' kgCO₂e. Not a confidence interval; missing months excluded.</p>')
-        cards.append(interval + f"<section><h2>{escape(site['site'])}</h2><p>{escape(site['kwh'])} kWh · {escape(site['cost_eur'])} EUR · {site['observed_months']} observed months</p>"
+        cards.append(f"<section><h2>{escape(site['site'])}</h2><p>{escape(site['kwh'])} kWh · {escape(site['cost_eur'])} EUR · {site['observed_months']} observed months</p>"
                      f"<p>Coverage: {escape(site['coverage_percent'])}% of {site['expected_months']} months ({escape(result['coverage_basis'])}). Missing: {escape(', '.join(site['missing_months']) or 'none')}.</p>"
-                     '<table><thead><tr><th>Month</th><th>kWh</th><th>EUR</th><th>Change %</th></tr></thead><tbody>' + rows + '</tbody></table></section>')
+                     + central + interval
+                     + '<table><thead><tr><th>Month</th><th>kWh</th><th>EUR</th><th>Change %</th></tr></thead><tbody>' + rows + '</tbody></table></section>')
     warnings = ''.join(f'<li>{escape(item)}</li>' for item in result['warnings']) or '<li>No screening flags. This does not establish data completeness or absence of issues.</li>'
     limitations = ''.join(f'<li>{escape(item)}</li>' for item in result['limitations'])
     return f'''<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Energy CSV report</title>

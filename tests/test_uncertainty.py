@@ -1,4 +1,5 @@
 import json
+import re
 import tempfile
 import unittest
 from decimal import Decimal as D
@@ -34,6 +35,24 @@ class EnvelopeTests(unittest.TestCase):
         self.assertEqual(len(report['sites'][0]['monthly']), 1)
         self.assertEqual(D(report['sites'][0]['emission_envelope']['emissions_high_kgco2e']), 20)
         self.assertIn('missing months excluded', render_html(report))
+
+    def test_html_keeps_each_emission_result_with_its_site(self):
+        rows = load_csv(b'month,site,kwh,cost_eur\n2026-01,A & B,1000,200\n2026-01,C,2000,400\n')
+        report = summarize(rows, 'x', factor=D('.05'))
+        add_envelopes(report, D('.04'), D('.08'), D('10'))
+        document = render_html(report)
+        sections = re.findall(r'<section>(.*?)</section>', document, re.S)
+        self.assertEqual(len(sections), 2)
+        for section, heading, central, lower, upper in [
+            (sections[0], '<h2>A &amp; B</h2>', '50.00', '36.000', '88.000'),
+            (sections[1], '<h2>C</h2>', '100.00', '72.000', '176.000'),
+        ]:
+            with self.subTest(heading=heading):
+                self.assertIn(heading, section)
+                self.assertIn(f'Central estimate: {central} kgCO₂e', section)
+                self.assertIn(f'{lower}–{upper} kgCO₂e', section)
+                self.assertIn('Not a confidence interval; missing months excluded.', section)
+        self.assertEqual(document.count('Observed-period emissions scenario envelope:'), 2)
 
     def test_cli_validation_and_export(self):
         with tempfile.TemporaryDirectory() as td:
